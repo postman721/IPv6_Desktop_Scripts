@@ -38,11 +38,11 @@ Another common one is avahi daemon which is used mainly for:
 		SSH service discovery (ssh.local)
 		File sharing discovery (SMB/AFP on some systems) etc.
 
-Rather removing anything it is best to disable the daemon:
+Rather than removing anything it is best to disable the daemon:
 		
 		sudo systemctl disable --now avahi-daemon
 
-If things start to go wrong then you will just enable it again:
+If things start to go wrong, then you will just enable it again:
 
 		sudo systemctl enable --now avahi-daemon
 
