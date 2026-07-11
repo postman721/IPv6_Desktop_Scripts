@@ -22,16 +22,45 @@ You might want to consider removing the backup file after it is no longer needed
 
 ## UFW checks
 
-/etc/default/ufw:
+UFW stores its default policies in `/etc/default/ufw`:
 
-		DEFAULT_INPUT_POLICY="DROP"
-		DEFAULT_OUTPUT_POLICY="ACCEPT"
-		DEFAULT_FORWARD_POLICY="DROP"
+```bash
+DEFAULT_INPUT_POLICY="DROP"
+DEFAULT_OUTPUT_POLICY="ACCEPT"
+DEFAULT_FORWARD_POLICY="DROP"
+```
 
-Should look like this on ufw status verbose:
-		
-		Default: deny (incoming), allow (outgoing), deny or disabled (routed)
+These normally correspond to this output from:
 
-If ufw status verbose is correct but the file still lacks those entries, show the output of:
+```bash
+sudo ufw status verbose
+```
 
-		sudo grep -nE 'DEFAULT_(INPUT|OUTPUT|FORWARD)_POLICY|IPV6' /etc/default/ufw
+```text
+Default: deny (incoming), allow (outgoing), deny (routed)
+```
+
+Some systems may display:
+
+```text
+Default: deny (incoming), allow (outgoing), disabled (routed)
+```
+
+when routing or forwarding is disabled, which is also appropriate for a normal desktop.
+
+To check the relevant settings in `/etc/default/ufw`, including IPv6 support, run:
+
+```bash
+sudo grep -nE \
+'^[[:space:]]*(IPV6|DEFAULT_(INPUT|OUTPUT|FORWARD)_POLICY)[[:space:]]*=' \
+/etc/default/ufw
+```
+
+Expected values are:
+
+```bash
+IPV6=yes
+DEFAULT_INPUT_POLICY="DROP"
+DEFAULT_OUTPUT_POLICY="ACCEPT"
+DEFAULT_FORWARD_POLICY="DROP"
+```
