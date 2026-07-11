@@ -21,3 +21,28 @@
 
 
 Explanation: 0 means false / off here.
+
+
+#### Reducing listening services
+At the end of verification.sh you might get a large list of services listening. These are usually local ones.
+One good example is: Exim. It is on many Debian based systems so local programs can send system mail. If you want to get rid of it:
+
+		sudo apt purge exim4 exim4-base exim4-config exim4-daemon-light
+		sudo systemctl disable --now exim4
+
+Another common one is avahi daemon which is used mainly for:
+
+		Network printers
+		Scanners
+		AirPlay-compatible speakers/TVs / Chromecast discovery
+		SSH service discovery (ssh.local)
+		File sharing discovery (SMB/AFP on some systems) etc.
+
+Rather removing anything it is best to disable the daemon:
+		
+		sudo systemctl disable --now avahi-daemon
+
+If things start to go wrong then you will just enable it again:
+
+		sudo systemctl enable --now avahi-daemon
+
