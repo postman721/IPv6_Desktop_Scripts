@@ -19,3 +19,7 @@ Log file location example:
 Old config file location example:
 
 		/etc/default/ufw.backup-20260711-211350 
+
+You might want to consider removing the log and backup files after they are no longer needed. Example command structure:
+
+		sudo rm insert_file_name_here
