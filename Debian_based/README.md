@@ -11,3 +11,11 @@ Check status:
 Check your ipv6 address from cli: 
 
 		ip -6 address show scope global
+
+Log file location example: 
+
+		/var/log/ufw-desktop-report-20260711-211350.log
+
+Old config file location example:
+
+		/etc/default/ufw.backup-20260711-211350 
