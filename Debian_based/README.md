@@ -20,7 +20,7 @@ You might want to consider removing the backup file after it is no longer needed
 
 		sudo rm insert_file_name_here
 
-## UFW checks
+## UFW checks - This is handled by verification.sh script
 
 UFW stores its default policies in `/etc/default/ufw`:
 
