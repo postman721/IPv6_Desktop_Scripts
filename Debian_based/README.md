@@ -46,7 +46,7 @@ Some systems may display:
 Default: deny (incoming), allow (outgoing), disabled (routed)
 ```
 
-Routing or forwarding might also be disabled, which is appropriate for a normal desktop user. See more from verificaton.md .
+Routing or forwarding might also be disabled, which is appropriate for a normal desktop user. See more from verification.md .
 
 To check the relevant settings in `/etc/default/ufw`, including IPv6 support, run:
 
