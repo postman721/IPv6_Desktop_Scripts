@@ -12,14 +12,9 @@ Check your ipv6 address from cli:
 
 		ip -6 address show scope global
 
-Log file location example: 
+Old config location example. This only gets created when IPV6 is no or missing.
 
-		/var/log/ufw-desktop-report-20260711-211350.log
-
-Old config location example:
-
-		/etc/default/ufw.backup-20260711-214955
-
+		/etc/default/ufw.backup-20260711-225725
 
 You might want to consider removing the log and backup files after they are no longer needed. Example command structure:
 
