@@ -16,6 +16,6 @@ Old config location example. This only gets created when IPV6 is no or missing.
 
 		/etc/default/ufw.backup-20260711-225725
 
-You might want to consider removing the log and backup files after they are no longer needed. Example command structure:
+You might want to consider removing the backup file after it is no longer needed. Example command structure:
 
 		sudo rm insert_file_name_here
