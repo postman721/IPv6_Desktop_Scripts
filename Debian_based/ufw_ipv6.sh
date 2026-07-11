@@ -4,28 +4,38 @@ umask 077
 
 # Require root.
 if (( ${EUID:-$(id -u)} != 0 )); then
-    echo "Run with sudo: sudo bash ufw_ipv6.sh"
+    echo "Run with sudo:"
+    echo "  sudo bash ufw_ipv6.sh"
     exit 1
 fi
 
 # Check required commands and suggest Debian/Ubuntu packages.
 declare -A PACKAGES=(
-    [curl]="curl"
-    [ufw]="ufw"
+    [awk]="gawk"
+    [cp]="coreutils"
+    [date]="coreutils"
+    [grep]="grep"
+    [hostname]="hostname"
     [ip]="iproute2"
+    [mktemp]="coreutils"
+    [sed]="sed"
     [ss]="iproute2"
     [tee]="coreutils"
+    [ufw]="ufw"
 )
 
 MISSING=()
 
 for COMMAND in "${!PACKAGES[@]}"; do
-    command -v "$COMMAND" >/dev/null 2>&1 ||
+    if ! command -v "$COMMAND" >/dev/null 2>&1; then
         MISSING+=("${PACKAGES[$COMMAND]}")
+    fi
 done
 
 if ((${#MISSING[@]})); then
-    mapfile -t MISSING < <(printf '%s\n' "${MISSING[@]}" | sort -u)
+    mapfile -t MISSING < <(
+        printf '%s\n' "${MISSING[@]}" | sort -u
+    )
 
     echo "Install the missing packages:"
     echo "  sudo apt update"
@@ -36,6 +46,13 @@ fi
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 REPORT="/var/log/ufw-desktop-report-${TIMESTAMP}.log"
 UFW_CONFIG="/etc/default/ufw"
+UFW_BACKUP="${UFW_CONFIG}.backup-${TIMESTAMP}"
+
+# Make sure the UFW configuration exists.
+if [[ ! -f "$UFW_CONFIG" ]]; then
+    echo "UFW configuration not found: $UFW_CONFIG"
+    exit 1
+fi
 
 # Display output and save it to a root-only report.
 touch "$REPORT"
@@ -47,37 +64,65 @@ echo "Date: $(date --iso-8601=seconds)"
 echo "Host: $(hostname)"
 echo
 
-# Test public IPv6 connectivity.
-echo "Testing IPv6..."
+# Find clean global IPv6 addresses.
+mapfile -t IPV6_ADDRESSES < <(
+    ip -6 -o address show scope global \
+        | awk '{print $4}' \
+        | cut -d/ -f1 \
+        | sort -u
+)
 
-if IPV6=$(curl -6fsSL --connect-timeout 5 --max-time 15 \
-    https://www.whatismyip.net/ip/); then
+echo "Global IPv6 addresses:"
 
-    IPV6=$(printf '%s' "$IPV6" | tr -d '[:space:]')
-
-    if [[ $IPV6 == *:* ]]; then
-        echo "IPv6 is working."
-        echo "Public IPv6: $IPV6"
-    else
-        echo "The service responded, but did not return an IPv6 address."
-    fi
+if ((${#IPV6_ADDRESSES[@]})); then
+    printf '  %s\n' "${IPV6_ADDRESSES[@]}"
 else
-    echo "IPv6 connectivity test failed."
+    echo "  None found."
 fi
 
 echo
 
-# Back up the UFW settings file.
-cp -a "$UFW_CONFIG" "${UFW_CONFIG}.backup-${TIMESTAMP}"
-
-# Enable IPv6 filtering in UFW.
-if grep -qE '^[[:space:]]*IPV6=' "$UFW_CONFIG"; then
-    sed -i -E \
-        's/^[[:space:]]*IPV6[[:space:]]*=.*/IPV6=yes/' \
-        "$UFW_CONFIG"
-else
-    printf '\nIPV6=yes\n' >> "$UFW_CONFIG"
+# Back up the UFW settings before changing anything.
+if ! cp -a -- "$UFW_CONFIG" "$UFW_BACKUP"; then
+    echo "Could not back up $UFW_CONFIG."
+    echo "No firewall configuration changes were made."
+    exit 1
 fi
+
+echo "UFW configuration backup:"
+echo "  $UFW_BACKUP"
+
+# Create the modified configuration in a temporary file.
+TEMP_CONFIG=$(mktemp "${UFW_CONFIG}.tmp.XXXXXX")
+
+cleanup() {
+    rm -f -- "${TEMP_CONFIG:-}"
+}
+trap cleanup EXIT
+
+cp --preserve=mode,ownership,timestamps \
+    "$UFW_CONFIG" "$TEMP_CONFIG"
+
+# Enable IPv6 filtering in the temporary copy.
+if grep -qE '^[[:space:]]*IPV6[[:space:]]*=' "$TEMP_CONFIG"; then
+    sed -i -E \
+        's/^[[:space:]]*IPV6[[:space:]]*=.*$/IPV6=yes/' \
+        "$TEMP_CONFIG"
+else
+    printf '\nIPV6=yes\n' >> "$TEMP_CONFIG"
+fi
+
+# Confirm the new setting before replacing the original file.
+if ! grep -qE '^IPV6=yes$' "$TEMP_CONFIG"; then
+    echo "Could not prepare the new UFW configuration."
+    echo "The original configuration was not changed."
+    exit 1
+fi
+
+# Atomically install the edited configuration.
+cat "$TEMP_CONFIG" > "$UFW_CONFIG"
+chmod --reference="$UFW_BACKUP" "$UFW_CONFIG"
+chown --reference="$UFW_BACKUP" "$UFW_CONFIG"
 
 # Secure desktop defaults.
 ufw default deny incoming
@@ -99,8 +144,12 @@ echo "Listening network services:"
 ss -lntup
 
 echo
-echo "Local IPv6 addresses:"
-ip -6 address show scope global
+echo "Global IPv6 addresses:"
+if ((${#IPV6_ADDRESSES[@]})); then
+    printf '  %s\n' "${IPV6_ADDRESSES[@]}"
+else
+    echo "  None found."
+fi
 
 echo
 echo "Report saved to:"
@@ -108,8 +157,7 @@ echo "  $REPORT"
 
 echo
 echo "Read recent UFW logs with:"
-echo "sudo journalctl -k | grep UFW"
-
+echo "  sudo journalctl -k | grep UFW"
 
 
 #########################
@@ -118,4 +166,3 @@ echo "sudo journalctl -k | grep UFW"
 # chmod 700 ufw_ipv6.sh
 # sudo bash ufw_ipv6.sh
 # Check status: sudo ufw status verbose
-# Check your ipv6 address from cli: ip -6 address show scope global
