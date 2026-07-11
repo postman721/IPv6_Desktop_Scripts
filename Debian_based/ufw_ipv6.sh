@@ -4,7 +4,7 @@ umask 077
 
 # Require root.
 if (( ${EUID:-$(id -u)} != 0 )); then
-    echo "Run with sudo: sudo ./ufw_ipv6.sh"
+    echo "Run with sudo: sudo bash ufw_ipv6.sh"
     exit 1
 fi
 
